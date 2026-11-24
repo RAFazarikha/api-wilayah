@@ -1,0 +1,8 @@
+.git
+.github
+.env*
+.omc
+.claude
+docs
+bin
+*.test

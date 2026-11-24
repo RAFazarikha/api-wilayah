@@ -1,0 +1,330 @@
+openapi: 3.1.0
+info:
+  title: API Wilayah Indonesia
+  version: 1.0.0
+  description: >
+    Read-only API for Indonesian administrative regions (provinsi, kabupaten/kota,
+    kecamatan, desa/kelurahan), postal codes and islands. Boundaries (polygons) are not
+    part of v1. All data responses carry ETag, Cache-Control and X-Data-Version and
+    support If-None-Match (304). Errors are application/problem+json (RFC 9457).
+servers:
+  - url: /
+paths:
+  /healthz:
+    get:
+      summary: Liveness
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: {type: string}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+  /v1/meta:
+    get:
+      summary: Dataset metadata
+      responses:
+        "200":
+          description: Metadata
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Meta"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/provinsi:
+    get:
+      summary: List provinces
+      responses:
+        "200":
+          description: All provinces
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WilayahList"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/provinsi/{kode}/kabupaten:
+    get:
+      summary: Regencies of a province
+      parameters: [{$ref: "#/components/parameters/kode"}]
+      responses:
+        "200":
+          description: Regencies
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WilayahList"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/kabupaten/{kode}/kecamatan:
+    get:
+      summary: Districts of a regency (paginated)
+      parameters:
+        - {$ref: "#/components/parameters/kode"}
+        - {$ref: "#/components/parameters/limit"}
+        - {$ref: "#/components/parameters/cursor"}
+      responses:
+        "200":
+          description: Districts
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WilayahList"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/kecamatan/{kode}/desa:
+    get:
+      summary: Villages of a district (paginated)
+      parameters:
+        - {$ref: "#/components/parameters/kode"}
+        - {$ref: "#/components/parameters/limit"}
+        - {$ref: "#/components/parameters/cursor"}
+      responses:
+        "200":
+          description: Villages
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WilayahList"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/wilayah/{kode}:
+    get:
+      summary: One region of any level with its ancestors
+      parameters: [{$ref: "#/components/parameters/kode"}]
+      responses:
+        "200":
+          description: Region
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WilayahDetail"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/wilayah/{kode}/pulau:
+    get:
+      summary: Islands of a province or regency (paginated)
+      parameters:
+        - {$ref: "#/components/parameters/kode"}
+        - {$ref: "#/components/parameters/limit"}
+        - {$ref: "#/components/parameters/cursor"}
+      responses:
+        "200":
+          description: Islands
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PulauList"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/kodepos/{kodepos}:
+    get:
+      summary: Villages with a postal code (paginated)
+      parameters:
+        - name: kodepos
+          in: path
+          required: true
+          schema: {type: string, pattern: "^[0-9]{5}$"}
+        - {$ref: "#/components/parameters/limit"}
+        - {$ref: "#/components/parameters/cursor"}
+      responses:
+        "200":
+          description: Villages
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WilayahList"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /v1/cari:
+    get:
+      summary: Search region names (prefix matches first, then substring)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: 2 to 64 characters, case-insensitive
+          schema: {type: string, minLength: 2, maxLength: 64}
+        - name: level
+          in: query
+          schema: {type: string, enum: ["1", "2", "3", "4", provinsi, kabupaten, kecamatan, desa]}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+        - {$ref: "#/components/parameters/cursor"}
+      responses:
+        "200":
+          description: Matches
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WilayahList"}
+        "304": {$ref: "#/components/responses/NotModified"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/MethodNotAllowed"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+components:
+  parameters:
+    kode:
+      name: kode
+      in: path
+      required: true
+      description: Region code such as 11, 11.01, 11.01.01 or 11.01.01.2001
+      schema: {type: string, pattern: "^[0-9]{2}(\\.[0-9]{2}(\\.[0-9]{2}(\\.[0-9]{4})?)?)?$"}
+    limit:
+      name: limit
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 500, default: 100}
+    cursor:
+      name: cursor
+      in: query
+      description: >
+        Opaque value from page.next_cursor. A cursor past the end of the results is
+        rejected with 400 on /v1/cari (whose cursor offset is also capped at 1000, and which then
+        issues no next_cursor). On the other paged endpoints a cursor exactly at the end gives 200
+        with an empty list.
+      schema: {type: string}
+  responses:
+    NotModified:
+      description: ETag matched If-None-Match
+    Problem:
+      description: Error (RFC 9457)
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    MethodNotAllowed:
+      description: Only GET and HEAD are supported (plus CORS preflight); the Allow header lists them
+      headers:
+        Allow: {schema: {type: string}}
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    TooManyRequests:
+      description: Per-client rate limit exceeded; retry after the Retry-After seconds
+      headers:
+        Retry-After: {schema: {type: integer}}
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    Unavailable:
+      description: The search was cut short by the request timeout
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: {type: string}
+        title: {type: string}
+        status: {type: integer}
+        detail: {type: string}
+        request_id: {type: string}
+    Detail:
+      type: object
+      required: [ibukota, lat, lng, elv, tz, luas, penduduk, status]
+      properties:
+        ibukota: {type: string}
+        lat: {type: [number, "null"]}
+        lng: {type: [number, "null"]}
+        elv: {type: [number, "null"]}
+        tz: {type: [integer, "null"]}
+        luas: {type: [number, "null"]}
+        penduduk: {type: [integer, "null"]}
+        status: {type: [integer, "null"]}
+    Wilayah:
+      type: object
+      required: [kode, nama, level]
+      properties:
+        kode: {type: string}
+        nama: {type: string}
+        level: {type: integer, minimum: 1, maximum: 4}
+        kodepos: {type: string, description: "Only for level 4"}
+        detail: {$ref: "#/components/schemas/Detail"}
+    WilayahDetail:
+      allOf:
+        - {$ref: "#/components/schemas/Wilayah"}
+        - type: object
+          required: [induk]
+          properties:
+            induk:
+              type: array
+              items:
+                type: object
+                required: [kode, nama, level]
+                properties:
+                  kode: {type: string}
+                  nama: {type: string}
+                  level: {type: integer}
+    Page:
+      type: object
+      required: [limit]
+      properties:
+        limit: {type: integer}
+        total: {type: integer}
+        next_cursor: {type: string}
+    WilayahList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: {$ref: "#/components/schemas/Wilayah"}
+        page: {$ref: "#/components/schemas/Page"}
+    Pulau:
+      type: object
+      required: [kode, nama, lat, lng, status, luas]
+      properties:
+        kode: {type: string}
+        nama: {type: string}
+        lat: {type: [number, "null"]}
+        lng: {type: [number, "null"]}
+        status: {type: string}
+        luas: {type: [number, "null"]}
+        notes: {type: string}
+    PulauList:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items: {$ref: "#/components/schemas/Pulau"}
+        page: {$ref: "#/components/schemas/Page"}
+    Meta:
+      type: object
+      required: [data_version, build_date, dasar_kepmendagri, catatan, counts, sources]
+      properties:
+        data_version: {type: string}
+        build_date: {type: string}
+        dasar_kepmendagri: {type: string}
+        catatan: {type: string}
+        counts:
+          type: object
+          additionalProperties: {type: integer}
+        sources:
+          type: array
+          items:
+            type: object
+            required: [file, sha256]
+            properties:
+              file: {type: string}
+              sha256: {type: string}
+              kepmendagri: {type: string}
