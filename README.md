@@ -1,6 +1,6 @@
 # API Wilayah Indonesia
 
-Read-only Go API (chi) for provinsi, kabupaten/kota, kecamatan, desa/kelurahan, kodepos, and pulau. Data is embedded and held in memory; there is no database. Plan and decisions: `docs/PLAN.md`. Endpoints: `api/openapi.yaml` (served at `/docs`). Boundaries (polygons) are not in v1.
+Read-only Go API (chi) for provinsi, kabupaten/kota, kecamatan, desa/kelurahan, kodepos, and pulau. Data is embedded and held in memory; there is no database. Plan and decisions: `docs/PLAN.md`. API reference with examples (Indonesian): [`docs/API.md`](docs/API.md). OpenAPI spec: `api/openapi.yaml` (served at `/docs`). Boundaries (polygons) are not in v1.
 
 ## Build the data
 
